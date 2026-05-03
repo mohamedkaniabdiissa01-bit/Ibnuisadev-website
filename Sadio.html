@@ -1,0 +1,306 @@
+```html
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MK Fuel Pro Management System</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+body{font-family:Arial,sans-serif;background:#eef2f7;padding:20px}
+.card{border-radius:22px;padding:18px;box-shadow:0 8px 24px rgba(0,0,0,.08)}
+input,button{border-radius:12px}
+.pump1{background:linear-gradient(135deg,#dbeafe,#bfdbfe)}
+.pump2{background:linear-gradient(135deg,#dcfce7,#bbf7d0)}
+.pump3{background:linear-gradient(135deg,#fee2e2,#fecaca)}
+.status-short{background:#dc2626;color:#fff}
+.status-excess{background:#16a34a;color:#fff}
+.status-balanced{background:#2563eb;color:#fff}
+</style>
+</head>
+<body>
+
+<div class="max-w-7xl mx-auto space-y-6" id="reportArea">
+
+<div class="bg-slate-900 text-white rounded-2xl p-6 flex flex-col md:flex-row justify-between items-center shadow-xl">
+    <div></div>
+    <div class="text-center">
+        <div class="w-20 h-20 rounded-full bg-yellow-400 text-slate-900 flex items-center justify-center text-3xl font-bold mx-auto mb-2">MK</div>
+        <h1 class="text-3xl font-bold">MK Fuel Pro Management System</h1>
+        <p class="text-slate-300">Daily Shift and Fuel Sales Dashboard</p>
+    </div>
+
+    <div class="bg-slate-800 p-4 rounded-xl space-y-2 w-72">
+        <label class="text-sm">Shift Date</label>
+        <input type="date" id="shiftDate" class="w-full p-2 text-black">
+        <div class="grid grid-cols-2 gap-2">
+            <div>
+                <label class="text-sm">PMS Price</label>
+                <input type="number" step="0.01" id="pmsPrice" value="178.20" class="w-full p-2 text-black">
+            </div>
+            <div>
+                <label class="text-sm">AGO Price</label>
+                <input type="number" step="0.01" id="agoPrice" value="166.50" class="w-full p-2 text-black">
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid lg:grid-cols-3 gap-5" id="pumpContainer"></div>
+
+<div class="grid md:grid-cols-2 gap-5">
+    <div class="card bg-white">
+        <h2 class="text-2xl font-bold mb-4">Tank Dip Section</h2>
+        <div class="overflow-x-auto">
+            <table class="w-full text-sm text-center">
+                <thead class="bg-slate-800 text-white">
+                    <tr>
+                        <th class="p-2">Product</th>
+                        <th>Opening</th>
+                        <th>Receive</th>
+                        <th>Sales</th>
+                        <th>Closing</th>
+                        <th>Actual</th>
+                        <th>Difference</th>
+                        <th>Status</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td class="font-bold text-blue-700">PMS</td>
+                        <td><input id="pmsOpen" type="number" class="w-20 p-1 border"></td>
+                        <td><input id="pmsReceive" type="number" class="w-20 p-1 border"></td>
+                        <td><input id="pmsSales" readonly class="w-20 p-1 bg-slate-100 border"></td>
+                        <td><input id="pmsClose" readonly class="w-20 p-1 bg-slate-100 border"></td>
+                        <td><input id="pmsActual" type="number" class="w-20 p-1 border"></td>
+                        <td><input id="pmsDiff" readonly class="w-20 p-1 bg-slate-100 border"></td>
+                        <td><span id="pmsStatus" class="px-3 py-1 rounded-full text-xs font-bold">-</span></td>
+                    </tr>
+                    <tr>
+                        <td class="font-bold text-green-700">AGO</td>
+                        <td><input id="agoOpen" type="number" class="w-20 p-1 border"></td>
+                        <td><input id="agoReceive" type="number" class="w-20 p-1 border"></td>
+                        <td><input id="agoSales" readonly class="w-20 p-1 bg-slate-100 border"></td>
+                        <td><input id="agoClose" readonly class="w-20 p-1 bg-slate-100 border"></td>
+                        <td><input id="agoActual" type="number" class="w-20 p-1 border"></td>
+                        <td><input id="agoDiff" readonly class="w-20 p-1 bg-slate-100 border"></td>
+                        <td><span id="agoStatus" class="px-3 py-1 rounded-full text-xs font-bold">-</span></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <div class="card bg-indigo-50">
+        <h2 class="text-2xl font-bold mb-4">M-Pesa Reconciliation</h2>
+        <div class="space-y-3">
+            <div class="grid grid-cols-3 gap-3 items-center">
+                <label>Opening</label><input id="mpesaOpening" type="number" class="p-2 border"><div></div>
+            </div>
+            <div class="grid grid-cols-3 gap-3 items-center">
+                <label>Closing Read</label><input id="mpesaClosing" type="number" class="p-2 border"><div id="mpesaExpected" class="font-bold text-indigo-700">0.00</div>
+            </div>
+            <div class="grid grid-cols-3 gap-3 items-center">
+                <label>Variance</label><input id="mpesaVariance" readonly class="p-2 bg-white border"><div id="mpesaVarianceStatus" class="font-bold"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="grid md:grid-cols-2 gap-5">
+    <div class="card bg-emerald-100">
+        <h2 class="text-2xl font-bold mb-3">Daily Financial Summary</h2>
+        <div class="space-y-2 text-lg">
+            <div class="flex justify-between"><span>Total Litres</span><strong id="sumLitres">0.00</strong></div>
+            <div class="flex justify-between"><span>Total Sales</span><strong id="sumSales">KES 0.00</strong></div>
+            <div class="flex justify-between"><span>Total Payments</span><strong id="sumPayments">KES 0.00</strong></div>
+            <div class="flex justify-between"><span>Difference</span><strong id="sumDifference">KES 0.00</strong></div>
+        </div>
+    </div>
+
+    <div class="card bg-yellow-100">
+        <h2 class="text-2xl font-bold mb-3">Daily Summary Buttons</h2>
+        <div class="grid gap-3">
+            <button class="bg-blue-600 text-white p-3 font-bold">Total Sale: <span id="btnSales">0.00</span></button>
+            <button class="bg-green-600 text-white p-3 font-bold">Expected Cash: <span id="btnCash">0.00</span></button>
+            <button class="bg-purple-600 text-white p-3 font-bold">M-Pesa: <span id="btnMpesa">0.00</span></button>
+        </div>
+    </div>
+</div>
+
+<div class="flex flex-wrap justify-center gap-4 pt-4">
+    <button onclick="saveShift()" class="bg-green-600 text-white px-8 py-3 rounded-xl font-bold">Save Shift</button>
+    <button onclick="loadShift()" class="bg-blue-600 text-white px-8 py-3 rounded-xl font-bold">Load Shift</button>
+    <button onclick="downloadPDF()" class="bg-red-600 text-white px-8 py-3 rounded-xl font-bold">Download PDF</button>
+</div>
+
+</div>
+
+<script>
+const pumps=[
+{name:'Pump 1',class:'pump1',nozzles:['PMS 1','PMS 2','AGO 1','AGO 2']},
+{name:'Pump 2',class:'pump2',nozzles:['PMS 1','PMS 2','AGO 1','AGO 2']},
+{name:'Pump 3',class:'pump3',nozzles:['AGO 1','AGO 2']}
+];
+
+const container=document.getElementById('pumpContainer');
+pumps.forEach((pump,index)=>{
+let html=`<div class="card ${pump.class}">
+<h2 class="text-2xl font-bold mb-4">${pump.name}</h2>`;
+
+pump.nozzles.forEach((n,i)=>{
+html+=`<div class="bg-white rounded-2xl p-3 mb-3 shadow">
+<div class="font-bold mb-2 text-slate-700">${n}</div>
+<div class="grid grid-cols-2 gap-2">
+<input type="number" class="prev p-2 border" placeholder="Previous">
+<input type="number" class="curr p-2 border" placeholder="Current">
+<input type="number" class="cash p-2 border" placeholder="Cash">
+<input type="number" class="mpesa p-2 border" placeholder="M-Pesa">
+<input type="text" class="invoice p-2 border" placeholder="Invoice">
+<input type="number" class="bank p-2 border" placeholder="Bank Transfer">
+<input type="number" class="expense p-2 border" placeholder="RTT Expenses">
+<input type="text" class="attendee p-2 border bg-yellow-50 border-yellow-400" placeholder="Attendee Name">
+</div>
+</div>`;
+});
+
+html+=`<div class="bg-white rounded-2xl p-4 mt-4 space-y-2 text-sm">
+<div class="flex justify-between"><span>Total Litres</span><strong class="litres">0</strong></div>
+<div class="flex justify-between"><span>Total Sale</span><strong class="sales">0</strong></div>
+<div class="flex justify-between"><span>Total Payments</span><strong class="payments">0</strong></div>
+<div class="flex justify-between"><span>Difference</span><strong class="difference">0</strong></div>
+<div class="mt-2 text-center"><span class="status px-4 py-2 rounded-full font-bold bg-blue-600 text-white">BALANCED</span></div>
+</div></div>`;
+container.innerHTML+=html;
+});
+
+function update(){
+const pmsPrice=parseFloat(document.getElementById('pmsPrice').value)||0;
+const agoPrice=parseFloat(document.getElementById('agoPrice').value)||0;
+
+let totalLitres=0,totalSales=0,totalPayments=0,totalCash=0,totalMpesa=0,pmsLitres=0,agoLitres=0;
+
+document.querySelectorAll('#pumpContainer .card').forEach(card=>{
+let litres=0,sales=0,payments=0;
+card.querySelectorAll('.bg-white.rounded-2xl.p-3').forEach(box=>{
+const prev=parseFloat(box.querySelector('.prev').value)||0;
+const curr=parseFloat(box.querySelector('.curr').value)||0;
+const diff=Math.max(curr-prev,0);
+const name=box.querySelector('.font-bold').textContent;
+const rate=name.includes('PMS')?pmsPrice:agoPrice;
+const sale=diff*rate;
+
+litres+=diff;
+sales+=sale;
+
+if(name.includes('PMS')) pmsLitres+=diff; else agoLitres+=diff;
+
+const cash=parseFloat(box.querySelector('.cash').value)||0;
+const mpesa=parseFloat(box.querySelector('.mpesa').value)||0;
+const bank=parseFloat(box.querySelector('.bank').value)||0;
+
+payments += cash+mpesa+bank;
+totalCash += cash;
+totalMpesa += mpesa;
+});
+
+const difference=payments-sales;
+card.querySelector('.litres').textContent=litres.toFixed(2)+' L';
+card.querySelector('.sales').textContent='KES '+sales.toFixed(2);
+card.querySelector('.payments').textContent='KES '+payments.toFixed(2);
+card.querySelector('.difference').textContent='KES '+difference.toFixed(2);
+
+const status=card.querySelector('.status');
+status.className='status px-4 py-2 rounded-full font-bold text-white';
+if(difference<0){status.classList.add('status-short');status.textContent='SHORT';}
+else if(difference>0){status.classList.add('status-excess');status.textContent='EXCESS';}
+else{status.classList.add('status-balanced');status.textContent='BALANCED';}
+
+totalLitres+=litres;
+totalSales+=sales;
+totalPayments+=payments;
+});
+
+document.getElementById('pmsSales').value=pmsLitres.toFixed(2);
+document.getElementById('agoSales').value=agoLitres.toFixed(2);
+
+['pms','ago'].forEach(type=>{
+const open=parseFloat(document.getElementById(type+'Open').value)||0;
+const receive=parseFloat(document.getElementById(type+'Receive').value)||0;
+const sales=type==='pms'?pmsLitres:agoLitres;
+const closing=open+receive-sales;
+document.getElementById(type+'Close').value=closing.toFixed(2);
+const actual=parseFloat(document.getElementById(type+'Actual').value)||0;
+const diff=actual-closing;
+document.getElementById(type+'Diff').value=diff.toFixed(2);
+const st=document.getElementById(type+'Status');
+if(diff<0){st.className='px-3 py-1 rounded-full text-xs font-bold status-short';st.textContent='SHORT';}
+else if(diff>0){st.className='px-3 py-1 rounded-full text-xs font-bold status-excess';st.textContent='EXCESS';}
+else{st.className='px-3 py-1 rounded-full text-xs font-bold status-balanced';st.textContent='BALANCED';}
+});
+
+const mpesaOpening=parseFloat(document.getElementById('mpesaOpening').value)||0;
+const mpesaClosing=parseFloat(document.getElementById('mpesaClosing').value)||0;
+const expected=mpesaClosing-mpesaOpening;
+document.getElementById('mpesaExpected').textContent=totalMpesa.toFixed(2);
+const variance=expected-totalMpesa;
+document.getElementById('mpesaVariance').value=variance.toFixed(2);
+document.getElementById('mpesaVarianceStatus').textContent=variance<0?'SHORT':variance>0?'EXCESS':'BALANCED';
+
+document.getElementById('sumLitres').textContent=totalLitres.toFixed(2)+' L';
+document.getElementById('sumSales').textContent='KES '+totalSales.toFixed(2);
+document.getElementById('sumPayments').textContent='KES '+totalPayments.toFixed(2);
+document.getElementById('sumDifference').textContent='KES '+(totalPayments-totalSales).toFixed(2);
+
+document.getElementById('btnSales').textContent='KES '+totalSales.toFixed(2);
+document.getElementById('btnCash').textContent='KES '+totalCash.toFixed(2);
+document.getElementById('btnMpesa').textContent='KES '+totalMpesa.toFixed(2);
+}
+
+document.addEventListener('input',update);
+
+function saveShift(){
+localStorage.setItem('mkFuelData',JSON.stringify({...Object.fromEntries([...document.querySelectorAll('input')].map(i=>[i.id||Math.random(),i.value]))}));
+alert('Shift saved successfully');
+}
+
+function loadShift(){
+const data=JSON.parse(localStorage.getItem('mkFuelData')||'{}');
+const inputs=document.querySelectorAll('input');
+let index=0;
+inputs.forEach(input=>{
+const key=input.id||Object.keys(data)[index++];
+if(data[key]!==undefined) input.value=data[key];
+});
+update();
+alert('Shift loaded');
+}
+
+async function downloadPDF(){
+const {jsPDF}=window.jspdf;
+const doc=new jsPDF();
+let y=20;
+doc.setFontSize(18);
+doc.text('MK Fuel Pro Management System Report',20,y);
+y+=12;
+doc.setFontSize(12);
+doc.text('Date: '+document.getElementById('shiftDate').value,20,y);
+y+=10;
+doc.text(document.getElementById('sumSales').textContent,20,y);
+y+=8;
+doc.text(document.getElementById('sumPayments').textContent,20,y);
+y+=8;
+doc.text(document.getElementById('sumDifference').textContent,20,y);
+y+=8;
+doc.text('Expected Cash: '+document.getElementById('btnCash').textContent,20,y);
+y+=8;
+doc.text('M-Pesa: '+document.getElementById('btnMpesa').textContent,20,y);
+doc.save('MK_Fuel_Report.pdf');
+}
+
+update();
+</script>
+</body>
+</html>
+```
